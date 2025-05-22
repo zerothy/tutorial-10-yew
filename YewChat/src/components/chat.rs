@@ -133,66 +133,115 @@ impl Component for Chat {
                 false
             }
         }
-    }
-
-    fn view(&self, ctx: &Context<Self>) -> Html {
+    }    fn view(&self, ctx: &Context<Self>) -> Html {
         let submit = ctx.link().callback(|_| Msg::SubmitMessage);
 
         html! {
-            <div class="flex w-screen">
-                <div class="flex-none w-56 h-screen bg-gray-100">
-                    <div class="text-xl p-3">{"Users"}</div>
-                    {
-                        self.users.clone().iter().map(|u| {
-                            html!{
-                                <div class="flex m-3 bg-white rounded-lg p-2">
-                                    <div>
-                                        <img class="w-12 h-12 rounded-full" src={u.avatar.clone()} alt="avatar"/>
-                                    </div>
-                                    <div class="flex-grow p-3">
-                                        <div class="flex text-xs justify-between">
-                                            <div>{u.name.clone()}</div>
-                                        </div>
-                                        <div class="text-xs text-gray-400">
-                                            {"Hi there!"}
-                                        </div>
-                                    </div>
-                                </div>
-                            }
-                        }).collect::<Html>()
-                    }
-                </div>
-                <div class="grow h-screen flex flex-col">
-                    <div class="w-full h-14 border-b-2 border-gray-300"><div class="text-xl p-3">{"💬 Chat!"}</div></div>
-                    <div class="w-full grow overflow-auto border-b-2 border-gray-300">
+            <div class="flex w-screen chat-bg">
+                // User sidebar
+                <div class="flex-none w-64 h-screen user-list overflow-hidden">
+                    <div class="text-xl p-4 font-semibold border-b border-gray-200 flex items-center">
+                        <span class="mr-2">{"👥"}</span>
+                        <span>{"Users"}</span>
+                    </div>
+                    <div class="overflow-y-auto h-full">
                         {
-                            self.messages.iter().map(|m| {
-                                let user = self.users.iter().find(|u| u.name == m.from).unwrap();
+                            self.users.clone().iter().map(|u| {
                                 html!{
-                                    <div class="flex items-end w-3/6 bg-gray-100 m-8 rounded-tl-lg rounded-tr-lg rounded-br-lg ">
-                                        <img class="w-8 h-8 rounded-full m-3" src={user.avatar.clone()} alt="avatar"/>
-                                        <div class="p-3">
-                                            <div class="text-sm">
-                                                {m.from.clone()}
+                                    <div class="flex m-3 bg-white rounded-xl p-3 shadow-sm user-item">
+                                        <div>
+                                            <img class="w-12 h-12 rounded-full user-avatar" src={u.avatar.clone()} alt="avatar"/>
+                                        </div>
+                                        <div class="flex-grow p-2 ml-2">
+                                            <div class="flex text-sm font-medium justify-between">
+                                                <div>{u.name.clone()}</div>
                                             </div>
-                                            <div class="text-xs text-gray-500">
-                                                if m.message.ends_with(".gif") {
-                                                    <img class="mt-3" src={m.message.clone()}/>
-                                                } else {
-                                                    {m.message.clone()}
-                                                }
+                                            <div class="text-xs text-gray-400 mt-1">
+                                                {"Online"}
                                             </div>
                                         </div>
                                     </div>
                                 }
                             }).collect::<Html>()
                         }
-
                     </div>
-                    <div class="w-full h-14 flex px-3 items-center">
-                        <input ref={self.chat_input.clone()} type="text" placeholder="Message" class="block w-full py-2 pl-4 mx-3 bg-gray-100 rounded-full outline-none focus:text-gray-700" name="message" required=true />
-                        <button onclick={submit} class="p-3 shadow-sm bg-blue-600 w-10 h-10 rounded-full flex justify-center items-center color-white">
-                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="fill-white">
+                </div>
+                
+                // Main chat area
+                <div class="grow h-screen flex flex-col">
+                    // Chat header
+                    <div class="w-full h-16 chat-header flex items-center px-6 border-b border-gray-200">
+                        <div class="text-xl font-semibold">{"💬 YewChat"}</div>
+                        <div class="ml-3 text-sm text-gray-500">{"Let's chat!"}</div>
+                    </div>
+                    
+                    // Messages container
+                    <div class="w-full grow overflow-auto p-6 space-y-6">
+                        {
+                            self.messages.iter().map(|m| {
+                                let user = self.users.iter().find(|u| u.name == m.from).unwrap_or_else(|| {
+                                    // Fallback for when user is not found
+                                    &self.users[0]
+                                });
+                                
+                                let is_current_user = false; // Replace with actual check when user context is available
+                                
+                                html!{
+                                    <div class={if is_current_user { 
+                                        "flex justify-end" 
+                                    } else { 
+                                        "flex" 
+                                    }}>
+                                        if !is_current_user {
+                                            <img class="w-10 h-10 rounded-full user-avatar self-end mr-3" 
+                                                 src={user.avatar.clone()} alt="avatar"/>
+                                        }
+                                        
+                                        <div class={if is_current_user {
+                                            "max-w-md bg-primary-light text-white rounded-2xl py-2 px-4 message-bubble"
+                                        } else {
+                                            "max-w-md bg-white rounded-2xl py-2 px-4 shadow-sm message-bubble"
+                                        }}>
+                                            if !is_current_user {
+                                                <div class="font-medium text-sm mb-1">{m.from.clone()}</div>
+                                            }
+                                            
+                                            if m.message.ends_with(".gif") {
+                                                <img class="rounded-lg w-full" src={m.message.clone()}/>
+                                            } else {
+                                                <p class="text-sm">{m.message.clone()}</p>
+                                            }
+                                            
+                                            <div class="text-xs text-right mt-1 message-time">
+                                                {"Just now"}
+                                            </div>
+                                        </div>
+                                        
+                                        if is_current_user {
+                                            <img class="w-10 h-10 rounded-full user-avatar self-end ml-3" 
+                                                 src={user.avatar.clone()} alt="avatar"/>
+                                        }
+                                    </div>
+                                }
+                            }).collect::<Html>()
+                        }
+                    </div>
+                    
+                    // Message input
+                    <div class="w-full px-4 py-3 bg-white border-t border-gray-200 flex items-center">
+                        <input 
+                            ref={self.chat_input.clone()} 
+                            type="text" 
+                            placeholder="Type a message..." 
+                            class="block w-full py-3 px-4 bg-gray-50 rounded-full outline-none message-input" 
+                            name="message" 
+                            required=true 
+                        />
+                        <button 
+                            onclick={submit} 
+                            class="p-3 ml-3 bg-primary-dark hover:bg-primary-dark w-12 h-12 rounded-full flex justify-center items-center text-white send-button"
+                        >
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="fill-white w-5 h-5">
                                 <path d="M0 0h24v24H0z" fill="none"></path><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
                             </svg>
                         </button>
